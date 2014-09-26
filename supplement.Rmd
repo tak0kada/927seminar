@@ -1,0 +1,427 @@
+---
+title: "ディリクレ分布を仮定したハプロタイプ数の推定"
+author: "岡田卓也"
+date: "2014年09月27日"
+output: html_document
+---
+
+## 1.1 はじめに
+Y染色体は父性血統を証明するものとして、父子兄弟鑑定や犯罪捜査で利用されている。また、データベースも構築されており、尤度・尤度比算出にも活用されている。Y染色体の常染色体との相違点として、組み換えが起こらないため各STRの存在確率が独立ではない点がある。そのため、個別のSTRのアリルではなく染色体全体がハプロタイプとして取り扱われる。このY染色体ハプロタイプは種類数が多く、低頻度のハプロタイプを中心に、未登録のものが多くあることなどから、他の染色体と比べて、データベースから母集団における頻度推定が難しく、また、未登録ハプロタイプの頻度推定が必要な場合が頻発するという問題が生じる。さらに、この頻度推定の難しさが、尤度・尤度比の算出・推定を困難にするという課題がある。母集団ハプロタイプ分布をベイズ推定を用いることで、頻度分布あるいは尤度比の分布を推定したい。
+
+### 1.1.1 用語の定義
+* Y染色体: 性染色体の1つ。
+* STR: マイクロサテライトともいう。2~5塩基の単位配列の繰り返し。
+* Y-STR: Y染色体上のSTR。
+* 多型: 集団内で1%以上の頻度で見られる遺伝子の変異。
+* ハプロタイプ: 単一の染色体上のDNA配列のこと。または遺伝的に連鎖している多型の組み合わせ。
+* Y染色体ハプロタイプ: Y染色体上で連鎖している多型の組み合わせ。男性系列が分かる。(今回はSTRの多型を考える)
+
+## 1.2 問題設定
+あるヒトの母集団から収集したサンプルからY染色体を調べ、そのデータを分類する。そのデータを元に、全ハプロタイプはどれくらいの種類があるのか、またそれぞれどれくらいの割合でいるのかを考える。
+
+極めて単純に考えるとハプロタイプはデータで得られた分ずつの割合でいると考えることができる。しかしこの考え方ではサンプリングされたことのない未知の種類について考慮しておらず、すでに確認された種類について過剰に、確認されていない種類について過小に評価している。また、ハプロタイプが、1:3:2の割合で現れた場合を考えても、$10$, $30$, $20$回ずつ見つかった場合と$10000$, $30000$, $20000$回ずつ見つかった場合ではその推測の正確さにはかなり違いがありそうである。
+
+以下では、より正確に全ハプロタイプの種類数と、それぞれの存在する割合を推定することを目標とし、それらの推定の特徴について検討する。またこの推定に際して、それぞれの種類は独立な確率で発見される(STRには変異は起こらない)という事を仮定し、多項分布にしたがったサンプルが得られると考えることにする。
+
+定量的に考えるために様々なパラメータに対して文字を設定する。まず、Y染色体ハプロタイプには全部で$K$種類あるとし、それぞれの存在割合を$f_{i} (1 \leq i \leq K)$とおく。また、$\mathbf{F}_{K} = (f_{1}, f_{2}, \ldots, f_{K})$とする。一方データベースには$k$種類のハプロタイプが登録され、それぞれ$u_{i}$ 回ずつ、合計$Q$回観測されている。さらに$v_{i} = u_{i} + 1$とおく。$\mathbf{U}_{k} = (u_{1},u_{2}, \ldots, u_{k})$、$\mathbf{V_{k}} = (v_{1}, v_{2}, \ldots, v_{k})$とする。
+
+$K$、$\mathbf{F}_{K}$、$\mathbf{U}_{k}$は$K \to F_{K} \to U_{k}$の順に発生しているので、図示すると
+
+$K$  
+↓  
+$\mathbf{F}_{K} \sim \mathcal{D}(\mathbf{F}_{k}; \mathbf{1})$  
+↓  
+$\mathbf{U}_{k} \sim \mathcal{D}(\mathbf{U}_{k}; \mathbf{F}_{K})$
+
+となる。一度に全体を考えるのは厄介なのでまず$K$の分布を推定し、その分布に従って$\mathbf{F}_{K}$を推定する。
+
+## 2. ベイズ推定とは
+**「ベイズ推定とはベイズ主義に基づいて言えば、観測された事象$D$に基づいて推定したい仮説$H$を確率的に求めることを言う。」**
+
+### 2.1 ベイズの定理
+この確率の更新について元になっているのがベイズの定理と呼ばれているもので
+$$
+P(H_{i}|D) = \dfrac{P(D|H_{i})P(H_{i})}{P(D)}
+$$
+と表される。見た目はごつい式だが$P(A|B)$というのを$P(A/B)$みたいなものだと思って見てやると、
+$$
+P(H \land D) = P(H/D)P(D) = P(D/H)P(H)
+$$
+なので上の式が導ける。さらに、全ての仮説について考えると$P(D) = \sum_{j}P(D|H_{j})P(H_{j})$なので
+$$
+P(H_{i}|D) = \dfrac{P(D|H_{i})P(H_{i})}{\sum_{j}P(D|H_{j})P(H_{j})}
+$$
+
+この式の要素には
+
+* $P(H|D)$は事象を観測した後の確率なので「事後確率」
+* $P(H)$は事象を観測した前の確率なので「事前確率」
+* $P(D|H)$はある仮説が成り立った上で先程観測された事象が起こる確率で「尤度」
+
+と名前が付いていて、$\text{事後確率} = \text{尤度} \times \text{事前確率} \times \text{適当な係数}$である。
+
+これを拡張してやると
+$$
+\text{事後確率} = \text{事前確率} \times \text{尤度}  \times \text{尤度} \cdots
+$$
+のように観測される事象に合わせてどんどん尤度を掛けあわせて行くだけで事後確率が分かってしまう。ベイズの定理は見た目によらずすごいやつである。
+
+上で見たようにベイズの定理はすごいやつなのだが致命的な欠点がある。1つ目の問題はどう仮説$H$を$H_{i}$に分割するかを考えてみると分かる。何かのパラメーターについて考えている場合について考えてみる。パラメータが取りうる全ての値について分解するのは実数では無限に要素があって不可能であるし、代わりと言っては何だが細かく区切ってやることにしても相当細切れにしないと正確な結果が分かりにくいことである。2つ目の問題は$P(H)$は自動的には決まらないので恣意的になる恐れがあることである。
+
+そういうこともあって(理論的な問題もあったそうなのだがそれについては知らない)このようなベイズの定理の使い方はコンピュータが普及してようやく実用的なものになった。
+
+### 2.2 ベイズ推定
+上のベイズの定理$P(H_{i}|D) = \dfrac{P(D|H_{i})P(H_{i})}{\sum_{j}P(D|H_{j})P(H_{j})}$を用いて、たくさんの$H_{i}$について計算した結果を集めたものが$P(H|D)$であり、この時$H$は可能な範囲を自由に動くので$H$についての関数となっている。この関数が事後分布と呼ばれるものである。「真の値」の分布が分かったことになる。
+
+計算の過程を考えていく。$P(H)$は事前に決まっているものではないので誰かが決めてやらないといけない。事実として分かっていることや個人的な思い込みに応じて適切に決める必要がある。一方尤度については、それぞれのパラメータについてどのように事象が起こっているかによって計算できる。
+
+* 簡単な例(wikipedia/ベイズ推定より転載)
+
+> どちらのボウルにクッキーがあるか?
+> クッキーのいっぱい詰まったボウルが2つあるとしよう。ボウル#1には10個のチョコチップクッキーと30個のプレーンクッキーが、ボウル#2にはそれぞれが20個ずつある（これを前提知識とする）。どちらか1つのボウルをランダムに選び、さらにランダムにクッキーを取り出す。結果、クッキーはプレーンだった。これがボウル#1から取り出されたという確率はどれくらいか?
+> 半分以上だというのは直感的に分かる（ボウル#1の方がプレーンクッキーが多いから）。正確な答えをベイズ推定で出そう。$H_{1}$ をボウル#1、$H_{2}$ をボウル#2とする。
+> 最初にボウルをランダムに選ぶのだから、そのどちらか一方をとる確率は $P(H_{1}) = P(H_{2}) = 0.5$。
+> 「プレーンクッキーが出た」という観察結果を「データD」とする。ボウル1での D の確率は $P(D | H_{1}) = 30/40 = 0.75$、ボウル2では $P(D | H_{2}) = 20/40 = 0.5$と分かる。ベイズの式は
+> $$\begin{align} P(H_1 | D) &= \frac{P(H_1) \cdot P(D | H_1)}{P(H_1) \cdot P(D | H_1) + P(H_2) \cdot P(D | H_2)} \\
+& = \frac{0.5 \times 0.75}{0.5 \times 0.75 + 0.5 \times 0.5} = 0.6 \end{align}$$
+> となるから、クッキーを見る前にボウル#1を選ぶ確率（事前確率）は $P(H_{1})$ = 0.5。クッキーを見た後には、この確率は $P(H_{1}|D)$ = 0.6 に改訂される。
+
+## 3. ディリクレ分布とは
+### 3.1 共役分布
+ベイズ推定において計算量が問題であるが、尤度がある決まった形の場合に、「事前分布、事後分布が同じ形の関数で書けてしまう場合」があり、その関数の係数を観測された事象に合わせて変化させていくだけで良いことがある。そのような場合に当てはまる分布が共役分布である。
+
+### 3.2 ディリクレ分布
+ディリクレ分布は
+$$
+\mathcal{D}(\mathbf{p}; \mathbf{\alpha}) = \dfrac{\Gamma(\sum a_{i})}{\prod(\Gamma a_{i})}\prod p_{i}^{a_{i}-1}
+$$
+多項分布は
+$$
+\mathcal{M}(\mathbf{n}; \mathbf{p}) = \dfrac{\prod\Gamma(n_{i})}{\Gamma(\sum n_{i})}\prod p_{i}^{n_{i}}
+$$
+
+と形が似ていることもあり関係が深く、ディリクレ分布は多項分布の共役事前分布になっている。つまり
+$$
+\text(事後分布) \propto \text(事前分布) \times \text(尤度)
+$$
+$$
+\mathcal{D}(\mathbf{p}; \mathbf{\alpha'}) \propto \mathcal{M}(\mathbf{n}; \mathbf{p}) \times \mathcal{D}(\mathbf{p}; \mathbf{\alpha})
+$$
+であり、$\alpha \to \alpha' (= \alpha + n)$へと更新されることになる。
+
+下のプロットは例として$\alpha$に4種類のパラメータを代入したものである。$x$軸、$y$軸をそれぞれ全体に占める割合、濃淡でその割合になる確率を表した。特に右の図2つに注目すると、$\alpha$が大きいほど分布が一点に集中して、より精度が高い状態と言える。
+```{r, warning=FALSE, message=FALSE}
+library("dplyr")
+library("rgl")
+library("MCMCpack")
+
+# 領域のメッシュ分割回数(図の細かさ)
+n_div <- 60
+# α
+alphas <- list(rep(1, 3), c(3, 7, 5), c(6, 2, 6), c(60, 20, 60))
+
+# ディリクレ分布の確率密度を計算する
+dirichlet3d.density <- function(vec_1, vec_2, alpha){
+  f <- function(x, y) ddirichlet(c(x, y, 1-x-y), alpha)
+  mapply(f, vec_1, vec_2)
+}
+
+# 複数のグラフをまとめて描画する
+# 引数はグラフの配置のパラメータでc(下, 左, 上, 右)の順に並んでいる
+par(mfcol=c(2,2), mar=c(2,2,2,0.2), oma=c(0,0,0,0))
+for (alpha in alphas){
+  x <- y <- seq(0, 1, length=n_div)
+  # メッシュ
+  z <- outer(x, y, function(x, y){dirichlet3d.density(x, y, alpha)})
+  z[z==NaN] <- 0
+  name <- paste("alpha = ", "(", paste(alpha[1], alpha[2], alpha[3], sep=", "), ")", sep="")
+  
+  # プロット
+  image(x, y, z,
+        col=colorRampPalette(c("white", "yellow", "red"),space = "rgb")(10),
+        xlab="", ylab="",
+        main=name
+        )
+  contour(z, add = TRUE, drawlabels = FALSE, nlevels=5)
+  polygon(c(0,1,0), c(0,0,1), border="black", lwd=3)
+}
+```
+
+## 4. 事後分布の推定
+### 4.0 下準備
+このようなモデルの確率分布を求めるときにはマルコフ連鎖モンテカルロ法(MCMC)が用いられることがある。しかし、今回のモデルはそのような技術を用いなくてもベイズの定理に則って解くことができる。
+
+モデル全体で観測されるのはデータベースで、$K$、$F$、$U$はこの順に生成される。これらのノードのパラメータ推定、つまり事後分布$P(\dot,|F)$の算出を行う。今回推定したいのはそれぞれのハプロタイプの母集団での頻度なので、$P(F|U)$を計算する。しかし、$F$全体での同時分布は母集団の種類数分の$K$次元上の分布になり、可視化が難しい。そこで$F$の$i$番目の要素$f_{i}$について$P(f_{i}|U)$を調べる。$\Omega_{-i}$を$F$の$f_{i}$以外の要素が$\sum_{j \neq i}{f_{j}} = 1-f_{i}$を満たしながら動ける範囲とすると、
+$$
+p(f_{i}|U) = \int_{F \in \Omega_{-i}} P(F_{K}|U_{k}) dF_{K}
+$$
+
+$F$の生成に$K$が必要なので$K$について和をとったものに変形して、
+$$
+p(f_{i}|U) = \int\sum_{K} p(F_{K}, K|U_{k})dF
+$$
+
+さらに式変形して、
+$$
+\begin{align}
+p(f_{i}|U) &= &\sum\int p(F|U, K)P(K|U)dF\\
+           &= &\sum\int p(F|U, K)dF \times P(K|U)
+\end{align}
+$$
+上の議論より、$F$の分布$p(F|U, K)dF$と$K$の分布$P(K|U)$について分割して考えれば良いと分かった。
+
+### 4.1 $K$の分布について
+ここでは全ての$K$について事前確率は等しいものと仮定して計算する(この過程は無限大の$K$についても大きな確率を与えることになることに注意。)
+$$
+\begin{align}
+P(K|U) &= &\dfrac{p(U|K)p(K)}{\sum p(U|K)P(K)}\\
+       &= &\dfrac{p(U|K)}{\sum p(U|K)}\\
+\end{align}
+$$
+より,p(U|K)を計算する。ここで、
+$$
+p(U|K) = \int p(U|F)p(F|K)dF
+$$
+
+$K$から$F$、$F$から$U$の生成される過程はそれぞれディリクレ分布$\mathcal{D}(F;\mathbf{1}_{K})$、多項分布$\mathcal{M}(U;F)$に従う。$K$種類の母集団から観測される$k$種類の対応は
+$\dfrac{\Gamma(K)}{\Gamma(K-k)}$通りある。
+$$
+\begin{align}
+p(U|K) &= &\int \mathcal{M}(U;F)\dfrac{\Gamma(K)}{\Gamma(K-k)}\mathcal{D}(F;\mathbf{1})dF\\
+       &= &\int \dbinom{\sum u_{i}}{u_{1}, \ldots, u_{K}} \prod_{K}f_{j}^{u_{j}} \dfrac{\Gamma(K)}{\Gamma(K-k)} \dfrac{\Gamma(K)}{\prod \Gamma(1)} \prod f_{j}^{(1-1)}dF\\
+       &= &\dbinom{\sum u_{i}}{u_{1}, \ldots, u_{K}} \Gamma(K) \dfrac{\Gamma(K)}{\Gamma(K-k)} B(\mathbf{V}) \int \dfrac{1}{B(\mathbf{V})}\prod f_{j}^{v_{j}-1}dF\\
+       &= &\dbinom{\sum u_{i}}{u_{1}, \ldots, u_{K}} \Gamma(K) \dfrac{\Gamma(K)}{\Gamma(K-k)} B(\mathbf{V})\\
+       &\propto &\Gamma(K) \dfrac{\Gamma(K)}{\Gamma(K-k)} B(\mathbf{V})\\
+       &= &\dfrac{\Gamma(K)^{2}}{\Gamma(K-k)} \dfrac{\prod\Gamma(v_{i})}{\Gamma(Q+K)}\\
+       &\propto &\dfrac{\Gamma(K)^{2}}{\Gamma(K-k)\Gamma(Q+K)}
+\end{align}
+$$
+より、$P(K|U) = \dfrac{\frac{\Gamma(K)^{2}}{\Gamma(K-k)\Gamma(Q+K)}}{\displaystyle \sum_{}^{\infty}\frac{\Gamma(K)^{2}}{\Gamma(K-k)\Gamma(Q+K)}}$
+
+```{r}
+# サンプル数
+Q <- 100
+# 尤度(比)を計算する
+lr.denom <- function(K, k, Q) exp(2*lgamma(K) - lgamma(K-k) - lgamma(Q+K))
+
+# 種類数の下限ごとにループ
+for (k in c(10, 50, 90)) {
+  denom <- lr.denom(K=seq(k+1, 100*k), k=k, Q=Q)
+  lr <- denom / sum(denom)
+  if (k==90) {
+    # プロット
+    plot(seq(k+1, 100*k), lr, 
+         xlab="K", ylab="liklihood", main=paste("Q=100, k=", as.character(k)), 
+         type='l')
+  }
+  else {
+  # 一部だけプロット
+    plot(seq(k+1, 5*k), lr[1:(4*k)], 
+         xlab="K", ylab="liklihood", main=paste("Q=100, k=", as.character(k)), 
+         type='l')
+  }
+}
+```
+
+最大値を1つ持つグラフになる。最大値はkがQに比べて小さいときQより小さいが、kが大きくなるとQより大きくなる。また、Qに等しくなるとKを無限に大きくしても尤度の分子が0に収束しなくなる。
+
+### 4.2 種類の割合について
+以下$K$を固定して考える。
+
+一度にたくさんの種類について考えるのは難しいのでそのうちの1つ、$f_{1}$を固定して考える。$f_{2}+ \cdots +f_{K} = 1-f_{1}$であり、これを満たして$f_{2} \cdots f_{K}$が動く空間を$\Omega_{-1}$とおくことにすると
+$$
+\begin{align}
+P(f_{1}) &= &\int_{\Omega_{-1}} P(\mathbf{F}_{K}| \mathbf{U}_{k}) d\mathbf{F}_{K}\\
+         &= &\int_{\Omega_{-1}} \mathcal{D}(\mathbf{F}_{K}; \mathbf{U}_{k}) d\mathbf{F}_{K}\\
+         &= &\int \cdots \int_{\Omega_{-1}} \dfrac{1}{Z} \prod f_{i}^{u_{i}} df_{2} \cdots df_{K}\\
+         &\vdots\\
+         &= &\dfrac{\Gamma (\sum v_{i})}{\Gamma(v_{1}) \Gamma(\sum v_{i}-v_{1})} f_{1}^{v_{1}-1} (1-f_{1})^{\sum v_{i}-v_{1}-1}
+\end{align}
+$$
+
+他の種類の$f$についても同様に計算できるので一般的な添字に書き換えると
+$$
+\dfrac{\Gamma (\sum v_{j})}{\Gamma (v_{i})\Gamma(\sum v_{j}-v_{i})} f_{i}^{v_{i}-1} (1-f_{i})^{\sum v_{j}-v_{i}-1}
+$$
+
+結局これはベータ関数$\mathcal{B}(v_{i}, \sum{v_{j}} - v_{i})$になっている。
+
+$\mathbf{F}_{K}$について考えているので、
+$$
+f_{i}^{u_{i}}(1-f_{i})^{\sum{u_{j}} - u_{i} + K - 2}
+$$
+についてのみ調べればいいと分かる。計算の過程は本質と関わらないことなのでこの文章の最後の補足に記した。
+
+### 4.3 簡単な例での実験
+簡単な具体例として、サンプルした結果として4種類のハプロタイプがそれぞれ60回、30回、10回、1回観測された場合を考える。赤、緑、青、黒がそれぞれ60、30、10、1観測されたハプロタイプの存在割合$f$の分布のプロットで、紫が観測されていないハプロタイプの存在割合をプロットしたものである。
+
+```{r exam, warning=FALSE, error=FALSE}
+# サンプルの内訳
+Us <- list(c(40, 20), c(60, 30, 10, 1))
+
+for (U in Us) {
+# 観測されていない種類(合計0回観測と見なす)をサンプルに追加する
+U <- c(U, 0)
+# 存在割合の候補
+Fs <- seq(0.0000001, 1-0.0000001, length.out=100)
+# 種類数
+Ks <- seq(length(U) - 1, 100)
+
+# 第1項
+pmf.1 <- outer(U, Fs, function(x,y) y^x)
+
+# --------------------
+# lgamma(K-k) =lgamma(K-length(U)+1)だがlgamma(0)を避けるためごまかしがあることに注意
+# --------------------
+f <- function(K) 2*lgamma(K) - lgamma(K - length(U) + 2) - lgamma(sum(U) + K)
+lpmf.Ks <- mapply(f, Ks) - (mapply(f, seq(Ks[1], Ks[1]*1000)) %>% exp %>% sum %>% log)
+
+# 第2項
+pmf.2 <- matrix(nrow=length(U), ncol=length(Fs))
+for (i in seq(length(U))) {
+  #↓KsとFsの要素数が同じになると正しい結果が得られないのに注意
+  tmp <- lpmf.Ks + outer((sum(U) - U[i] + Ks - 2), log(1 - Fs))
+  # max(tmp)でも良いが精度の維持のため
+  tmp <- exp(tmp - apply(tmp, 1, max))
+  pmf.2[i,] <- apply(tmp, 2, sum)
+}
+
+pmf <- pmf.1 * pmf.2
+# Uごとのpmfの和が1になるように正規化する
+pmf <- pmf / apply(pmf, 1, sum)
+cmf <- t(apply(pmf, 1, cumsum))
+
+# 概形の確認
+#par(mfcol=c(2,1))
+#matplot(t(pmf), type='l', lty=1, ylab="pmf")
+#matplot(t(cmf), type='l', lty=1, ylab="cmf")
+
+# プロット
+color = c("red", "green", "blue", "black", "purple")
+#par(mfcol=c(2,1))
+# for (i in seq(nrow(pmf))){
+#   plot(Fs, cmf[i,], xlim=c(0, 1), ylim=c(0, 1), ylab="", type='l', col=color[i])
+#   par(new=T)
+# }
+# title(ylab="cmf")
+for (i in seq(nrow(pmf))){
+  plot(Fs, pmf[i,]*100, xlim=c(0, 1), ylim=c(0, 100), xlab="", ylab="", type='l', col=color[i])
+  par(new=T)
+}
+title(main = "fの分布")
+} #endfor{U}
+```
+
+## 5. 推定方法の評価
+4で示した推定方法の正確性について考える。
+TO BE CONTINUED...
+
+# 補足
+このドキュメントの作成に使ったRmdファイルは[//github/hoge.Rmdファイル]で公開しています。
+
+## 3.1 共役分布
+ディリクレ分布が多項分布の共役事前分布であることの説明
+多項分布に基づいて尤度を計算する。
+$$
+\begin{align}
+P(\mathbf{U}_{k}| \mathbf{F}_{K})   &= &\mathcal{M}(\mathbf{U}_{k}; \mathbf{F}_{K})\\
+                                    &= &\binom{Q}{u_{1} \cdots u_{k}} \prod_{i} f_{i}^{u_{i}}\\
+                                    &= &\dfrac{Q!}{\prod_{i}u_{i}!}\prod_{i} f_{i}^{u_{i}}
+\end{align}
+$$
+事前分布をディリクレ分布として事後分布を計算する。この段階では事後分布の形は明らかではない。
+$$
+\begin{align}
+P(\mathbf{F}_{K}| \mathbf{U}_{k})   &\propto &\mathcal{M}(\mathbf{U}_{k}; \mathbf{F}_{K})P(\mathbf{F}_{K})\\
+                                    &= &\mathcal{M}(\mathbf{U}_{k}; \mathbf{F}_{K})\mathcal{D}(\mathbf{U}_{k}; \mathbf{1})\\
+                                    &\propto &\prod f_{i}^{u_{i}}\prod f_{i}^{\mathbf{1}_{i}-1}\\
+                                    &= &\prod f_{i}^{u_{i}+\mathbf{1}_{i}-1}
+\end{align}
+$$
+より、正規化項を加えて、
+$$
+P(\mathbf{F}_{K}| \mathbf{U}_{k}) = \dfrac{1}{Z}\prod f_{i}^{v_{i}-1} = \mathcal{D}(\mathbf{F}_{K}; \mathbf{U}_{k})
+                            \text{ただし} Z=\mathcal{B}(\mathbf{V}) = \dfrac{\prod_{i}\Gamma(v_{i})}{\Gamma(\sum v_{i})}
+$$
+となり、事後分布もディリクレ分布と分かった。
+
+## 4.2 種類の割合について
+### 4.2.1. ラプラス変換、逆変換
+以下の計算の過程でラプラス変換、逆ラプラス変換というものを使う。それぞれについて計算中に現れるものをここでまとめておく。
+
+* ラプラス変換  
+$$
+F(s) = \mathcal{L}(f(t)) \equiv \int_{0}^{\infty} f(t)e^{-st}dt
+$$
+
+$$
+\mathcal{L}(t^{\alpha}) = \dfrac{\Gamma(\alpha + 1)}{s^{\alpha + 1}}
+$$
+
+* ラプラス逆変換
+$$
+f(t) = \mathcal{L}^{-1}(F(s)) \equiv \dfrac{1}{2\pi i} \int_{-i\infty}^{i\infty} F(s)e^{st}ds
+$$
+
+$t^{\alpha - 1} = \mathcal{L}^{-1}(\mathcal{L}(t^{\alpha - 1})) = \mathcal{L}^{-1}(\dfrac{\Gamma(\alpha)}{s^{\alpha}})$より、
+$$
+\mathcal{L}(\dfrac{1}{s^{\alpha}}) = \dfrac{t^{\alpha - 1}}{\Gamma(\alpha)}
+$$
+
+### 4.2.2 $P(f_{1})$の計算
+$$
+\begin{align}
+P(f_{1}) &= &\int_{\Omega_{-1}} P(\mathbf{F}_{K}| \mathbf{U}_{k}) d\mathbf{F}_{K}\\
+         &= &\int_{\Omega_{-1}} \mathcal{D}(\mathbf{F}_{K}; \mathbf{U}_{k}) d\mathbf{F}_{K}\\
+         &= &\int \cdots \int_{\Omega_{-1}} \dfrac{1}{Z} \prod f_{i}^{u_{i}} df_{2} \cdots df_{K}
+\end{align}
+$$
+積分区間が簡単に書けない。$\sum_{i \neq 1} f_{i} = 1 - f-{1}$を満たす範囲で動けばいいのでこれをデルタ関数$\delta(1 - f_{1} - \cdots f(K))$で表すと積分区間を$0$から$\infty$に変更できるので
+$$
+\begin{align}
+P(f_{1}) &= &\int_{0}^{\infty} \cdots \int_{0}^{\infty} \dfrac{1}{Z} \prod f_{i}^{u_{i}} \delta(1-f_{1}-\cdots f(K)) df_{2} \cdots df_{K}\\
+         &= &\int_{0}^{\infty} \cdots \int_{0}^{\infty} \dfrac{1}{Z} \prod f_{i}^{u_{i}} \Bigl( \int_{-\infty}^{\infty} \dfrac{1}{2\pi} e^{-il(1-\sum f_{i})} dl \Bigr) df_{2} \cdots df_{K}\\
+         &= &\dfrac{1}{Z} \dfrac{1}{2\pi} \int_{-\infty}^{\infty} e^{-il(1-\sum f_{1})} f_{1}^{u_{1}} \Bigl( \prod \int_{0}^{\infty} f_{i}^{u_{i}}e^{il f_{i}} df_{i} \Bigr) dl
+\end{align}
+$$
+デルタ関数を用いることで積分区間を簡単にすることができた。
+
+()の中はラプラス変換できる形になっているので$il = -\kappa$とおくと
+$$
+\begin{align}
+P(f_{1}) &= &\dfrac{1}{Z} \dfrac{1}{2\pi i} \int_{-i\infty}^{i\infty} e^{\kappa(1-f_{1})} f_{1}^{u_{1}} \Bigl( \prod_{j\neq 1} \int_{0}^{\infty} f_{j}^{u_{j}} e^{-\kappa f_{j}} df_{j} \Bigr) d\kappa\\
+         &= &\dfrac{1}{Z} \dfrac{1}{2\pi i} \int_{-i\infty}^{i\infty} e^{\kappa(1-f_{1})} f_{1}^{u_{1}} \Bigl( \prod_{j\neq 1} \mathcal{L}(f_{j}^{u^{j}}) \Bigr) d\kappa\\
+         &= &\dfrac{1}{Z} \dfrac{1}{2\pi i} \int_{-i\infty}^{i\infty} e^{\kappa(1-f_{1})} f_{1}^{u_{1}} \prod_{j\neq 1} \dfrac{\Gamma (u_{j}+1)}{\kappa^{u_{j}+1}} d\kappa\\
+\end{align}
+$$
+
+さらに式変形すると
+$$
+\begin{align}
+P(f_{1}) &= &\dfrac{1}{Z} f_{1}^{u_{1}} \prod_{j\neq 1} \Gamma(u_{j}+1) \dfrac{1}{2\pi i} \int_{-i\infty}^{i\infty} e^{(1-f_{1})\kappa} \dfrac{1}{\kappa^{\sum u_{k}+K-(1+u_{1})}} d\kappa\\
+         &= &\dfrac{1}{Z} f_{1}^{u_{1}} \prod_{j\neq 1} \Gamma(v_{j}) \dfrac{1}{2\pi i} \int_{-i\infty}^{i\infty} e^{(1-f_{1})\kappa} \dfrac{1}{\kappa^{\sum v_{k}-v_{1}}} d\kappa\\
+\end{align}
+$$
+
+この式は逆ラプラス変換できる。
+$$
+\begin{align}
+P(f_{1}) &= &\dfrac{1}{Z} f_{1}^{u_{1}} \prod_{j\neq 1} \Gamma(v_{j}) \mathcal{L}^{-1} \Bigl(\dfrac{1}{\kappa^{\sum v_{k}-v_{1}}} \Bigr)\\
+        &= &\dfrac{1}{Z} f_{1}^{v_{1}-1} \prod_{j\neq 1} \Gamma(v_{j}) \dfrac{(1 - f_{1})^{\sum v_{k}-v_{1}-1}}{\Gamma(\sum v_{k}-v_{1})}\\
+        &= &\dfrac{\Gamma(\sum v_{i})}{\prod \Gamma(v_{i})} f_{1}^{v_{1}-1} \prod_{j\neq 1} \Gamma(v_{j}) \dfrac{(1 - f_{1})^{\sum v_{k}-v_{1}-1}}{\Gamma(\sum v_{k}-v_{1})}\\
+        &= &\dfrac{\Gamma (\sum v_{i})}{\Gamma(v_{1}) \Gamma(\sum v_{i}-v_{1})} f_{1}^{v_{1}-1} (1-f_{1})^{\sum v_{i}-v_{1}-1}
+\end{align}
+$$
+
+### 4.3 簡単な例での実験
+```{r exam, eval=FALSE}
+```
+$(K, U, F)$の三次元のベクトルを扱うことになる。Rでの実行速度を考えてある程度ベクトル化している。以下はそれぞれの要素の次元である。K, U, Fの3要素についてベクトル化していて、いずれかの要素のベクトルが含まれている場合に文字、含まれていない場合に0を記入して区別する。例えば(K, 0, 0)はKの要素についての1次元のベクトルである。
+
+$\dfrac{\frac{\Gamma(K)}{\Gamma(Q+K)}}{\displaystyle \sum_{}^{\infty}\frac{\Gamma(K)}{\Gamma(Q+K)}}$ <- (K, 0, 0)
+
+$f_{i}^{u_{i}}$ <- (0, 0, F) ** (0, U, 0)
+
+$(1−f_{i})^{\sum{u_{j}}−u_{i}+K−2}$ <- (0, 0, F) ** ((0, U, 0) + (K, 0, 0))
+
+誤差を防ぐためにpmfに関しては最小値(行の先頭の要素)を引いたものを計算の過程では使い、正規化の際にその分もまとめて補正している。ベクトル化についてのより分かりやすい解説は[http://www.slideshare.net/shuyo/numpy-9704562]にある(説明に用いられている言語にはRと違ってリスト内包があるのでそのまま適用できるわけではないがほぼ同じ)。

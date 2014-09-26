@@ -317,7 +317,7 @@ title(main = "fの分布")
 TO BE CONTINUED...
 
 # 補足
-このドキュメントの作成に使ったRmdファイルは[//github/hoge.Rmdファイル]で公開しています。
+このドキュメントの作成に使ったRmdファイルは[https://github.com/tak0kada/927seminar]で公開しています。
 
 ## 3.1 共役分布
 ディリクレ分布が多項分布の共役事前分布であることの説明
